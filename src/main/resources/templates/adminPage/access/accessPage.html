@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html class="x-admin-sm" xmlns:th="http://www.thymeleaf.org" lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>芒果小区</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=yes, minimum-scale=0.4, initial-scale=0.8"/>
+    <link rel="stylesheet" th:href="@{/adminStatic/css/font.css}">
+    <link rel="stylesheet" th:href="@{/adminStatic/css/xadmin.css}">
+    <script type="text/javascript" th:src="@{/webjars/layui/2.5.6/layui.js}"></script>
+    <script type="text/javascript" th:src="@{/webjars/jquery/3.5.1/jquery.js}"></script>
+    <script type="text/javascript" th:src="@{/adminStatic/js/xadmin.js}"></script>
+    <script type="text/javascript" th:src="@{/adminStatic/js/MyLayuiUtils.js}"></script>
+    <!--[if lt IE 9]>
+    <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+    <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <style>
+        .layui-form-item {
+            margin-bottom: 0;
+        }
+        .layui-form-pane .layui-form-label {
+            max-width: 100px;
+        }
+        .layui-form-item .layui-input-inline .layui-form-select {
+            width: 180px;
+        }
+        .layui-form-pane .layui-form-label {
+            padding: 9px 15px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body " style="padding-bottom: 0;">
+                    <form class="layui-form layui-col-space5 layui-form-pane" id="form">
+                        <!-- 根据标题查询 -->
+                        <div class="layui-inline layui-show-xs-block layui-form-item">
+                            <label class="layui-form-label">用户名</label>
+                            <div class="layui-input-inline">
+                                <input class="layui-input" autocomplete="off" placeholder="请输入要查询的用户名" name="userName">
+                            </div>
+                        </div>
+
+                        <div class="layui-inline layui-show-xs-block">
+                            <button class="layui-btn layui-btn-normal" id="searchBtn" type="button" lay-filter="sreach">
+                                <i class="layui-icon">&#xe615;</i>
+                            </button>
+                            <input class="layui-btn layui-btn-normal layui-icon" type="reset" value="&#xe669;"/>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-card-body ">
+                    <table id="listInfo" lay-filter="listInfo"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/html" id="toolbarDemo">
+    <div class="layui-btn-container">
+        <button class="layui-btn layui-btn-sm iconfont layui-btn-normal" lay-event="add">&#xe6b9; 添加</button>
+        <button class="layui-btn layui-btn-sm iconfont layui-btn-danger" lay-event="del">&#xe69d; 删除</button>
+    </div>
+</script>
+<script>
+    layui.use(['table','form', 'upload', 'laydate'],
+        function () {
+            var table = layui.table,
+                layer = layui.layer,
+                form = layui.form;
+
+            // 初始调用表格加载方法
+            loadFunction("getDataByPage");
+
+            /**
+             * 绑定查询按钮
+             */
+            $("#searchBtn").click(function() {
+                // 获取表单数据
+                var sendData = $("#form").serialize();
+                // 重新调用表格加载方法
+                loadFunction("getDataByPage?" + sendData)
+            })
+
+            /**
+             * 加载表格方法
+             * @param url
+             */
+            function loadFunction(url) {
+                //第一个实例
+                table.render({
+                    elem: '#listInfo'
+                    , height: 'full-115'
+                    , url: url //数据接口
+                    , defaultToolbar: ['filter']
+                    , loading: true
+                    , limit: 20
+                    , title: '渠道信息'
+                    , toolbar: '#toolbarDemo'
+                    , page: {
+                        layout: ['limit', 'count', 'prev', 'page', 'next', 'skip', 'refresh'] //自定义分页布局
+                        ,groups: 5 //只显示 5 个连续页码
+                        ,theme: '#1E9FFF'
+                    }
+                    , cols:
+                        [
+                            [ //表头
+                                {type: 'checkbox',fixed: 'left', unresize: true}
+                                , {type: 'numbers', title: '序号', width: 60 }
+                                , {field: 'id', title: '主键标识', hide: true}
+                                , {field: 'userId', title: '登记用户的ID', hide: true}
+                                , {field: 'userName', title: '姓名'}
+                                , {field: 'phone', title: '联系电话'}
+                                , {field: 'isResident', title: '行人身份', templet:'<div>{{d.isResident == "0" ? \'<span style=\"color:yellowgreen;\">访客</span>\' : "小区住户"}}</div>'}
+                                , {field: 'type', title: '登记类型', templet:'<div>{{d.type == "0" ? "进入" :  "出去"}}</div>'}
+                                , {field: 'desc', title: '事由'}
+                                , {field: 'createDate', title: '登记时间'}
+                            ]
+                        ]
+                })
+            }
+
+            //头工具栏事件
+            table.on('toolbar(listInfo)', function (obj) {
+                var checkStatus = table.checkStatus(obj.config.id);
+                var data = checkStatus.data;
+                var selectCount = data.length;      //获取选中行
+                var dataId = getIds(data);          //data是选中的所有数据，得到的是一个数组，将这个数组传入getIds方法进行处理
+                switch (obj.event) {
+                    case 'add':
+                        toWindow("toAccessVisitAddWindow", "新增访客信息", "400px", "400px");
+                        break;
+                    //自定义头工具栏右侧图标 - 提示
+                    case 'del':
+                        // 删除重要信息
+                        deleteInfo(selectCount, dataId, "deleteInfo?ids=" + dataId);
+                        break;
+                }
+            });
+        });
+</script>
+</html>
